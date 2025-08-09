@@ -70,6 +70,17 @@
             font-size: 10px;
         }
 
+        .label.easter-egg {
+            color: #ff00ff;
+            text-shadow: 0 0 15px rgba(255, 0, 255, 0.8), 0 0 30px rgba(255, 0, 255, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
         .label.highlighted {
             opacity: 1;
             font-size: 13px;
@@ -669,6 +680,20 @@
                     }
                 });
             });
+            
+            // Add Easter Egg as PBB_DIRECTOR_EASTER_EGG
+            positions.set("PBB_DIRECTOR_EASTER_EGG", { 
+                name: "PBB_DIRECTOR_EASTER_EGG",
+                isEasterEgg: true 
+            });
+            
+            // Connect Easter Egg to Budget Planning
+            const budgetPrograms = Array.from(programs.keys()).filter(p => 
+                p.toLowerCase().includes('budget') || p.toLowerCase().includes('finance')
+            );
+            if (budgetPrograms.length > 0) {
+                links.push({ source: "PBB_DIRECTOR_EASTER_EGG", target: budgetPrograms[0] });
+            }
 
             console.log(`Loaded ${programs.size} programs, ${positions.size} positions, ${links.length} connections`);
             return { programs, positions, links };
@@ -965,28 +990,47 @@
 
                 const sphere = new THREE.Mesh(geometry, material);
                 sphere.position.set(x, y, z);
-                sphere.userData = { type: 'position', data: position, name: name };
                 
-                // Check for Easter Egg
-                if (name === "Priority Based Budgeting Director") {
+                // Check for Easter Egg and rename it for display
+                let displayName = name;
+                if (name === "PBB_DIRECTOR_EASTER_EGG") {
+                    displayName = "Priority Based Budgeting Director";
                     sphere.userData.isEasterEgg = true;
+                    // Make the sphere purple
+                    sphere.material.color.setHex(0x9400d3);
+                    sphere.material.emissive.setHex(0x4b0082);
                 }
+                
+                sphere.userData = { type: 'position', data: position, name: displayName, internalName: name };
                 
                 dnaGroup.add(sphere);
                 nodes.push(sphere);
-                nodeMap.set(name, sphere);
+                nodeMap.set(displayName, sphere);
                 
-                // Create label
-                const label = createLabel(name, false);
-                labels.push(label);
+                // Create label ONLY if not Easter Egg
+                if (name !== "PBB_DIRECTOR_EASTER_EGG") {
+                    const label = createLabel(displayName, false);
+                    labels.push(label);
+                } else {
+                    // Push null for Easter Egg to keep indices aligned
+                    labels.push(null);
+                }
                 
                 nodeIndex++;
             });
 
             // Create connections
             links.forEach(link => {
-                const sourceNode = nodeMap.get(link.source);
-                const targetNode = nodeMap.get(link.target);
+                // Map internal names to display names
+                let sourceName = link.source;
+                let targetName = link.target;
+                
+                if (sourceName === "PBB_DIRECTOR_EASTER_EGG") {
+                    sourceName = "Priority Based Budgeting Director";
+                }
+                
+                const sourceNode = nodeMap.get(sourceName);
+                const targetNode = nodeMap.get(targetName);
 
                 if (sourceNode && targetNode) {
                     const curve = new THREE.CatmullRomCurve3([
@@ -1009,7 +1053,7 @@
                     });
 
                     const line = new THREE.Line(geometry, material);
-                    line.userData = { source: link.source, target: link.target };
+                    line.userData = { source: sourceName, target: targetName };
                     dnaGroup.add(line);
                     connections.push(line);
                 }
@@ -1334,11 +1378,26 @@
                         hasResults = true;
                         const item = document.createElement('div');
                         item.className = `search-result-item ${node.userData.type}`;
-                        item.innerHTML = `
-                            <div style="font-weight: bold;">${node.userData.name}</div>
-                            <div style="font-size: 0.85em; opacity: 0.7;">${node.userData.type === 'program' ? 'Program' : 'Position'}</div>
-                        `;
+                        
+                        // Special display for Easter Egg
+                        if (node.userData.name === "Priority Based Budgeting Director") {
+                            item.innerHTML = `
+                                <div style="font-weight: bold; color: #ff00ff;">🎭 ${node.userData.name}</div>
+                                <div style="font-size: 0.85em; opacity: 0.7;">Mystery Position</div>
+                            `;
+                        } else {
+                            item.innerHTML = `
+                                <div style="font-weight: bold;">${node.userData.name}</div>
+                                <div style="font-size: 0.85em; opacity: 0.7;">${node.userData.type === 'program' ? 'Program' : 'Position'}</div>
+                            `;
+                        }
+                        
                         item.onclick = () => {
+                            // Check for Easter Egg
+                            if (node.userData.name === "Priority Based Budgeting Director") {
+                                activateMatrixMode();
+                            }
+                            
                             // Zoom to node
                             hoveredNode = node;
                             updateDetailPanel(node);
