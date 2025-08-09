@@ -1,17 +1,4 @@
-// Add the Easter Egg position if not already present
-            if (!positions.has("Priority Based Budgeting Director")) {
-                positions.set("Priority Based Budgeting Director", { 
-                    name: "Priority Based Budgeting Director",
-                    isEasterEgg: true 
-                });
-                // Connect it to Budget Planning if it exists
-                const budgetPrograms = Array.from(programs.keys()).filter(p => 
-                    p.toLowerCase().includes('budget') || p.toLowerCase().includes('finance')
-                );
-                if (budgetPrograms.length > 0) {
-                    links.push({ source: "Priority Based Budgeting Director", target: budgetPrograms[0] });
-                }
-            }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
